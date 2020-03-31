@@ -1,13 +1,12 @@
-rm(list=ls())
-library(deSolve)
 library(dplyr)
 library(ggplot2)
 library(shiny)
 library(shinyWidgets)
 library(shinycssloaders)
 library(reshape2)
-
+library(plotly)
 load(file='Data/estados_parser.rdata')
+names(estados.parser) <- gsub(" ", ".", names(estados.parser))
 shinyUI(
     fluidPage(theme = "style.css",
               div(style = "padding: 1px 0px; width: '100%'",
@@ -33,22 +32,25 @@ shinyUI(
                             tags$p("Some heads are not labeled male/female but contain the name of a character of known gender (e.g., \"Han Solo\").  Incorporating this information would require a hand-maintained list of character names and their genders; I haven't done this.") ) ),
 
                         column( width =3 ,
-                            dropdownButton( size = 'default', tags$h3("Parametros"),
-                                sliderInput(inputId = 'days', label = 'Sigma', value =30 , min = 30, max = 60, step = 30), # en realidad Lety me dijo 5.8 pero eso complica el rollo
-                                sliderInput(inputId = 'sigma', label = 'Sigma', value =5 , min = 4.5, max = 5.5, step = 0.5), # en realidad Lety me dijo 5.8 pero eso complica el rollo
-                                sliderInput(inputId = 'gamma_s', label = 'Gamma_s', value = 2 , min = 1, max = 4, step = 1),
-                                sliderInput(inputId = 'gamma_a', label = 'Gamma_a', value = 2 , min = 1, max = 4, step = 1),
-                                sliderInput(inputId = 'alpha', label = 'alpha', value = 2/3 , min = 0, max = 1, step = 1/3),
-                                sliderInput(inputId = 'w', label = 'w', value = 2/3 , min = 0, max = 1, step = 1/3),
+                            dropdownButton( size = 'default', tags$h3("Parametros"), 
+                                sliderInput(inputId = 'days', label = 'Dias', value =30 , min = 30, max = 60, step = 30), # en realidad Lety me dijo 5.8 pero eso complica el rollo
+                                sliderInput(inputId = 'sigma', label = 'Sigma', value = 0.20 , min = 0.18, max = 0.22, step = .02), # en realidad Lety me dijo 5.8 pero eso complica el rollo
+                                sliderInput(inputId = 'gamma_s', label = 'Gamma_s', value = 0.75 , min = 0.55, max = .95, step = .20),
+                                #sliderInput(inputId = 'gamma_a', label = 'Gamma_a', value = 0.75 , min = 0.55, max = .95, step = .20 ),
+                                sliderInput(inputId = 'alpha', label = 'alpha', value = .5 , min = 0, max = 1, step = .5),
+                                sliderInput(inputId = 'w', label = 'w', value = .5 , min = 0, max = 1, step = .5),
                             circle = TRUE, status = "danger", icon = icon("history"), width = "300px",
-                            tooltip = tooltipOptions(title = "Cambia los parametros !") )),
+                            tooltip = tooltipOptions(title = "Cambia los parametros !") ),
+                            verbatimTextOutput("beta")),
                         column(width = 4,
-                               fluidRow( pickerInput( inputId = "myPicker", label = "Select/deselect all + format selected",
-                                         choices = names(estados.parser),options = list( `actions-box` = TRUE, size = 10,
+                               fluidRow( pickerInput( inputId = "estado", label = "Select/deselect all + format selected",
+                                         choices = c('Todos', names(estados.parser)),options = list( `actions-box` = TRUE, size = 10,
                                                  `selected-text-format` = "count > 3"),
                                          multiple = TRUE)),
                     p(), # Main panel with plot.
-                               fluidRow(uiOutput("demographicsCirclePlotUI") %>% withSpinner() ) )) ) ,
+                               fluidRow(plotlyOutput("ia_plot") %>% withSpinner() ),
+                    fluidRow(plotlyOutput("is_plot") %>% withSpinner() ),
+                    fluidRow(plotlyOutput("y_plot") %>% withSpinner() ) )) ) ,
                       # About and credits.
                       tabPanel( "About",type = "tabs", # Various tabs.
                           tabsetPanel(# General info.
