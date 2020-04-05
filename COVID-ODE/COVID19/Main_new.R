@@ -7,6 +7,8 @@ library(shinycssloaders)
 library(reshape2)
 library(plotly)
 args <- commandArgs(TRUE)
+getwd()
+path <- "C:/Users/fou-f/Documents/DSenCDMX/COVID-ODE/COVID19"
 #setwd("~/Desktop/DSenCDMX/COVID-ODE/COVID19/")
 ####################################################################################
 # solver modelo 4
@@ -244,11 +246,11 @@ N <- valores_ini[, "Poblacion"]
 n_bet <- paste0("bet", 1:dim(parametros)[1] )
 n_delta <- paste0("delta",rep(1:dim(parametros)[1],
                               dim(parametros)[1]), "_", rep(1:dim(parametros)[1], each=dim(parametros)[1]))
-sigma.s <- sort( round(c(1/4.5, 1/5, 1/5.5), 2)) #no son exactamente los que quiere LEty 
+sigma.s <- sort( round(c(1/4.5, 1/5, 1/5.5), 2)) #no son exactamente los que quiere LEty
 days <- strtoi(args[2])
 print('days-----------')
 print(days)
-days <- 60 
+days <- 60
 alphas <- c(0.2, 0.5, 0.8)
 
 gamma_a <- gamma_s  <- round(strtoi(args[1])/100, 2)
@@ -265,7 +267,7 @@ tt <- as.matrix( parametros[, c("beta", "delta_1", "delta_2", "delta_3", "delta_
                                 "delta_22", "delta_23", "delta_24", "delta_25", "delta_26", "delta_27", "delta_28",
                                 "delta_29", "delta_30", "delta_31", "delta_32"   )])
 tt <- as.vector(tt)
-#sigma <- sigma.s[3]    
+#sigma <- sigma.s[3]
 
 
 for(sigma in sigma.s)
@@ -288,18 +290,18 @@ gc()
 Sys.sleep(2)
 estados.parser <- parametros$Estado
 names(estados.parser) <- parametros$NombreINEGI
-save(estados.parser, file='/home/fou/Desktop/DSenCDMX/COVID-ODE/COVID19/Data/estados_parser.rdata')
+save(estados.parser, file=paste0(path,'/Data/estados_parser.rdata'))
 sim2 <- as.data.frame(as.matrix(sim))
 names(sim2)[2:193] <- paste0(
     rep( c('s', 'e', 'is', 'ia' , 'r', 'y' ), each=32), '_', names(estados.parser))
 poblacion.hot.fix <- rep( valores_ini$Poblacion, 6 )
 for (i in 1:length(poblacion.hot.fix))
 {
-  sim2[, i+1] <- sim2[, i+1] * poblacion.hot.fix[i]# multiplicamos la tasa por la poblacion de cada estado 
+  sim2[, i+1] <- sim2[, i+1] * poblacion.hot.fix[i]# multiplicamos la tasa por la poblacion de cada estado
 }
-string <- paste0('days_', days, '|sigma_', sigma, '|gamma_s_', gamma_s, '|gamma_a', gamma_a, '|alpha_', alpha,
-                 '|w_', w, '.csv')
-write.csv(sim2, file= paste0('/home/fou/Desktop/DSenCDMX/COVID-ODE/COVID19/Data/', string), 
+string <- paste0('days_', days, '-sigma_', sigma, '-gamma_s_', gamma_s, '-gamma_a', gamma_a, '-alpha_', alpha,
+                 '-w_', w, '.csv')
+write.csv(sim2, file= paste0(path,'/Data/', string),
           row.names = FALSE)
 print(string)
       }
