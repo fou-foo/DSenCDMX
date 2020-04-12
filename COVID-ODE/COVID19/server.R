@@ -21,9 +21,9 @@ shinyServer(function(input, output) {
     gamma_a <- gamma_s <- round(input$gamma_s, 2)
     #gamma_a <- round( input$gamma_a,2)
     days <- round(input$days, 2)
-    string <- paste0('Data/days_', input$days, '|sigma_', sigma, '|gamma_s_', gamma_s,
-                     '|gamma_a', gamma_a, '|alpha_', input$alpha,
-                     '|w_', input$w, '.csv')
+    string <- paste0('Data/days_', input$days, '__sigma_', sigma, '__gamma_s_', gamma_s,
+                     '__gamma_a', gamma_a, '__alpha_', input$alpha,
+                     '__w_', input$w, '.csv')
     data <- read.csv(file = string)
     index <- grep('^ia',names(data))
     data <- data[, c(1, index)]
@@ -44,19 +44,19 @@ shinyServer(function(input, output) {
     p <- ggplotly(p)
     return(p)
     })
-  
-  
-  
-  
+
+
+
+
   output$is_plot <- renderPlotly({
     sigma <- round(input$sigma, 2)
     gamma_a <- gamma_s <- round(input$gamma_s, 2)
     #gamma_a <- round( input$gamma_a,2)
     days <- round(input$days, 2)
-    
-    string <- paste0('Data/days_',  days, '|sigma_',  sigma, '|gamma_s_',  gamma_s,
-                     '|gamma_a',  gamma_a, '|alpha_', input$alpha,
-                     '|w_', input$w, '.csv')
+
+    string <- paste0('Data/days_',  days, '__sigma_',  sigma, '__gamma_s_',  gamma_s,
+                     '__gamma_a',  gamma_a, '__alpha_', input$alpha,
+                     '__w_', input$w, '.csv')
     data <- read.csv(file = string)
     index <- grep('^is',names(data))
     data <- data[, c(1, index)]
@@ -77,17 +77,17 @@ shinyServer(function(input, output) {
     p <- ggplotly(p)
     return(p)
   })
-  
+
   output$y_plot <- renderPlotly({
     sigma <- round(input$sigma, 2)
     gamma_a <- gamma_s <- round(input$gamma_s, 2)
     #gamma_a <- round( input$gamma_a,2)
-     
+
     days <- round(input$days, 2)
-    
-    string <- paste0('Data/days_', days, '|sigma_', sigma, '|gamma_s_', gamma_s,
-                     '|gamma_a', gamma_a, '|alpha_', input$alpha,
-                     '|w_', input$w, '.csv')
+
+    string <- paste0('Data/days_', days, '__sigma_', sigma, '__gamma_s_', gamma_s,
+                     '__gamma_a', gamma_a, '__alpha_', input$alpha,
+                     '__w_', input$w, '.csv')
     data <- read.csv(file = string)
     index <- grep('^y',names(data))
     data <- data[, c(1, index)]
@@ -108,5 +108,5 @@ shinyServer(function(input, output) {
     p <- ggplotly(p)
     return(p)
   })
-  
+
 })
