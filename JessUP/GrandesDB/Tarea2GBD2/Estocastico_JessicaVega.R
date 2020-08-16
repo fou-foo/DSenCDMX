@@ -4,7 +4,7 @@ library(dplyr)
 # 
 normalizar <- function(x, na.rm = FALSE) (x - mean(x, na.rm = na.rm)) / sd(x, na.rm)
 ##################################
-setwd('C:\\Users\\usuario\\Desktop\\DSenCDMX\\JessUP\\GrandesDB\\Tarea2GBD2\\')
+setwd('C:\\Users\\usuario\\Desktop\\GitHub\\DSenCDMX\\JessUP\\GrandesDB\\Tarea2GBD2\\')
 dat <- read.csv("muestra_checkouts-by-title.csv")
 summary(dat)
 n <- nrow(dat)
@@ -26,16 +26,16 @@ for (i in 1:dim(dat)[2])
 }
 X <- cbind(X, dat)
 X <- as.matrix(X)
-######### lmpiamos memoria 
+######### limpiamos memoria 
 rm(dat)
 gc()
 Sys.sleep(2)
-epoch <- 400
+epoch <- 1000
 alpha <-0.01
 
 beta <- matrix(rep(0, dim(X)[2]), nrow = dim(X)[2])
 costo <- rep(0, epoch)
-
+dim(X)
 
 for(i in seq(1, epoch, by = 1)){
   y_hat <- X %*% beta
