@@ -1,4 +1,5 @@
 rm(list=ls())
+t1 <- Sys.time()
 ########## Aux functions 
 createPartition <- function(data_, p=0.7){
   t <- unique(data_$device)
@@ -133,24 +134,64 @@ set.seed(0)
 gbmFit1 <- train(failure ~ ., data = train, method = "gbm", trControl = fit.control,
                  verbose = TRUE)
 gbmFit1
-xgb.Fit1 <- train(failure ~ ., data = train, method = "xgbDART", 
+#install.packages('xgboost')
+require(xgboost)
+xgb.Fit1 <- train(failure ~ ., data = train, method = "xgbTree",# tuneLength = 5, search= 'random', 
                   trControl = fit.control,
                   verbose = TRUE)
 xgb.Fit1
+
 require(randomForest)
-rf.Fit1 <- train(failure ~ ., data = train, method = "rf", trControl = fit.control,
+require(inTrees)
+rf.Fit1 <- train(failure ~ ., data = train, method = "rfRules", trControl = fit.control,
                  verbose = TRUE)
 rf.Fit1
 rlg.Fit1 <- train(failure ~ ., data = train, method = "regLogistic", 
                   trControl = fit.control, verbose = TRUE)
 rlg.Fit1
-resamps <- resamples(list(GBM = gbmFit1, LDA = lda.Fit1,
+resamps <- resamples(list(GBM = gbmFit1, XGB = xgb.Fit1,
                           RF = rf.Fit1, RLG=rlg.Fit1  ))
 resamps
 summary(resamps)
 summary(diff(resamps))
 rlg.Fit1$bestTune
+confusionMatrix(predict(rf.Fit1$finalModel,train), train$failure)
+confusionMatrix(predict(gbmFit1$finalModel,train, n.trees= 150,
+                        single.tree=FALSE, type='response'), train$failure)
 confusionMatrix(predict(rlg.Fit1$finalModel,train)$predictions, train$failure)
+hist(predict(gbmFit1$finalModel,train, n.trees= 150, single.tree=FALSE, type='response'))
+t2 <- Sys.time()
+t2 - t1
+confusionMatrix(predict(xgb.Fit1$finalModel,as.matrix(train[, 2:10])) ), train$failure)
+hist(predict(xgb.Fit1$finalModel,as.matrix(train[, 2:10])) )  
+t2 <- Sys.time()
+t2 - t1
+confusionMatrix(predict(rf.Fit1$finalModel,test), test$failure)
+confusionMatrix(predict(rlg.Fit1$finalModel,test)$predictions, test$failure)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 fit.control <- trainControl( method = "repeatedcv", number = 30, repeats = 10,
                              allowParallel = TRUE, classProbs = TRUE, search = 'grid', 
                              summaryFunction = f1,  sampling =  "down")

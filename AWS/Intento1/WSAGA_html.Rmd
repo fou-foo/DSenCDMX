@@ -1,0 +1,245 @@
+---
+title: "Work Sample "
+author: J. Antonio García
+date: "09/11/2020"
+output:  html_document
+---
+
+```{r setup0, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, warning = FALSE, error = FALSE, message = FALSE, fig.height = 3, fig.width = 5)
+```
+# Reduce maintenance cost through predictive techniques 
+
+## Preamble
+
+```{r setup, eval=FALSE}
+# html_notebook
+
+packs <- c('lubridate', 'dplyr', 'ggplot2', 'caret', 'MLmetrics', 'gbm',
+           'e1071', 'LiblineaR', 
+           'xgboost', 'randomForest', 'doParallel')
+index <- packs %in% row.names(installed.packages())
+if (any(!index)){
+  sapply(packs[!index], FUN=install.packages )
+}
+```
+
+```{r a}
+require(lubridate) # easy handle datetimes
+require(dplyr) # like SQL in R, and also load pipe operator 
+require(ggplot2) # easy, fast  and nice plots 
+require(caret) # a toolbox 
+require(MLmetrics) # metric in one line 
+require(gbm) # boosting alg.
+require(e1071) # numerical rutines for svm implementation 
+require(LiblineaR) # another implementation for RLogReg
+require(xgboost) # The implementation 
+require(randomForest) # nice RF implementation 
+require(doParallel) #ugly parallel in R but useful  
+
+```
+
+
+#### Set up __parallel__ enviroment
+
+```{r parallel }
+cl <- makePSOCKcluster(2)
+registerDoParallel(cl)
+```
+
+# EDA and feature engineering
+
+To include the temporal correlation, we construct 9 additional variables as follows:
+
+```{r eda }
+rm(list=ls())  # clean env.
+t1 <- Sys.time()
+data.raw <- read.csv(file='device_failure.csv') # few records kernels function works fine 
+print(sum(is.na(data.raw))) # NOT NULLS! THANKS A LOT :D
+data.raw %>% arrange(device, date) %>% mutate(date = ymd(date) ) -> data.raw
+data.raw %>% group_by(device) %>% arrange(device, date) %>%
+  mutate( l.attribute1 = lag(attribute1), 
+          l.attribute2 = lag(attribute2), 
+          l.attribute3 = lag(attribute3), 
+          l.attribute4 = lag(attribute4), 
+          l.attribute5 = lag(attribute5), 
+          l.attribute6 = lag(attribute6), 
+          l.attribute7 = lag(attribute7), 
+          l.attribute8 = lag(attribute8), 
+          l.attribute9 = lag(attribute9)) -> data.raw 
+data.raw <- na.omit(data.raw)
+```
+
+Each device has 0 or 1 failure, and if has a failure it's the last row
+
+```{r knn.fails}
+n.fails.index <- which(data.raw$failure==1) #only 106 failures 
+nn.fails <- data.raw[ rep(n.fails.index, each=9) + -4:4, ]
+head(nn.fails, 50 )
+```
+
+And in general, the devices present at most one fault and from which no information is recorded about them. 
+Above all we are in a case where the variable to predict has a __strong positive bias__, more than 99% of the records are not failures, a very common case in practice ...
+
+```{r filter}
+data.raw %>% filter(failure==1) %>% group_by(device) %>% summarise(n=n()) -> t
+summary(t$n)
+table(data.raw$failure) / dim(data.raw)[1]
+summary(data.raw)
+```
+
+# Focus on success stories
+
+So we decided to focus on success stories to infer from them insights that allow us to carry out the task.
+
+```{r plots}
+device.with.failures <- unique(data.raw$device[n.fails.index] )
+data.sample <- data.raw[ data.raw$device %in% device.with.failures, ]
+ggplot(data.sample, aes(attribute1, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal() + theme(legend.position="none") 
+ggplot(data.sample, aes(attribute2, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal() +theme(legend.position="none") 
+ggplot(data.sample, aes(attribute3, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal() +theme(legend.position="none") 
+ggplot(data.sample, aes(attribute4, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+ggplot(data.sample, aes(attribute5, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+ggplot(data.sample, aes(attribute6, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+ggplot(data.sample, aes(attribute7, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+ggplot(data.sample, aes(attribute8, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+ggplot(data.sample, aes(attribute9, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+
+```
+
+Due to the distribution of some of the variables, we apply a non-linear transformation that allows us to more easily discriminate between failures and non-failures.
+
+
+```{r aaaw}
+index.columns <- c(2, 3, 4, 7, 8, 9:18) + 3
+# log features selected 
+data.sample[, names(data.sample)[index.columns]] <-  
+  log(data.sample[, names(data.sample)[index.columns]] + 1 )
+# standar features 
+index.columns <- grep('attr', names(data.sample))
+summary(data.sample)
+for ( i in index.columns ){
+  temp <- data.sample[, names(data.sample)[i]]
+  data.sample[, names(data.sample)[i]] <- scale(temp)
+}
+ggplot(data.sample, aes(attribute1, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal() + theme(legend.position="none") 
+ggplot(data.sample, aes(attribute2, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal() +theme(legend.position="none") 
+ggplot(data.sample, aes(attribute3, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal() +theme(legend.position="none") 
+ggplot(data.sample, aes(attribute4, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+ggplot(data.sample, aes(attribute5, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+ggplot(data.sample, aes(attribute6, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+ggplot(data.sample, aes(attribute7, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+ggplot(data.sample, aes(attribute8, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+ggplot(data.sample, aes(attribute9, fill =  as.character(failure), alpha=.01)) +
+  geom_density()  + theme_minimal()+theme(legend.position="none") 
+
+```
+
+
+# Select model 
+
+After we divided our sample to continue with a preselection of models, among the enormous variety of algorithms and implementations that exist, we decided to report 4, because they are interpretable models and easy to explain to non-specialized people.
+
+Since we are interested in keeping the number of false negatives and false positives low, we opted for the $F_1$ metric to measure the performance of the algorithms.
+
+```{r train_pre}
+createPartition <- function(data_, p=0.7){
+  # Inputs: data_ (data.frame) to split 
+  #         p (numeric): dataframe's proportion for train sample 
+  t <- unique(data_$device)
+  n <- length(t)
+  n.p <- round(n*p, 0)
+  t.sample <- sample(t, n.p)
+  train.index <- which( data_$device %in% t.sample)
+  return(train.index)
+}
+
+f1 <- function (data, lev = NULL, model = NULL) {
+  # Function requiere to calculate F1 score within caret::train , see doc. 
+  precision <- posPredValue(data$pred, data$obs, positive = "Failure")
+  recall  <- sensitivity(data$pred, data$obs, positive = "Failure")
+  f1_val <- (2 * precision * recall) / (precision + recall)
+  names(f1_val) <- c("F1")
+  return(f1_val)
+} 
+
+set.seed(0)
+data.sample$failure <- factor(data.sample$failure)
+levels(data.sample$failure) <- c('NoFailure', 'Failure')
+train.index <- createPartition(data.sample)
+data.sample$date <- data.sample$device <- NULL
+train <- data.sample[train.index, ]
+test <- data.sample[-train.index, ]
+fit.control <- trainControl(  method = 'repeatedcv', number = 10, repeats = 3,
+                             allowParallel = TRUE, classProbs = TRUE,
+                             summaryFunction = f1,  sampling =  "up")
+
+set.seed(0)
+gbmFit1 <- train(failure ~ ., data = train, method = "gbm", trControl = fit.control,
+                 verbose = FALSE)
+xgb.Fit1 <- train(failure ~ ., data = train, method = "xgbTree", #tuneLength = 5, search= 'random', 
+                  trControl = fit.control,
+                  verbose = FALSE)
+rf.Fit1 <- train(failure ~ ., data = train, method = "rf", trControl = fit.control,
+                 verbose = FALSE)
+rlg.Fit1 <- train(failure ~ ., data = train, method = "regLogistic", 
+                  trControl = fit.control, verbose = FALSE)
+
+```
+In this first view we discard GBM and RLG, we proceed to tune RF and XGB
+
+```{r bonferroni}
+resamps <- resamples(list(GBM = gbmFit1, XGB = xgb.Fit1,
+                          RF = rf.Fit1, RLG=rlg.Fit1  ))
+summary(resamps)
+#summary(diff(resamps))
+t2 <- Sys.time()
+t2 - t1
+
+confusionMatrix(predict(rf.Fit1$finalModel,test), test$failure)
+confusionMatrix(predict(xgb.Fit1,test), test$failure)
+```
+
+```{r tunning1}
+t3 <- Sys.time()
+set.seed(0)
+tune_grid <- expand.grid(nrounds=c(100,300), max_depth = c(4:7), eta = c(0.05, 1),   gamma = c(0.01),
+                         colsample_bytree = c(0.75), subsample = c(0.50),  min_child_weight = c(0))
+
+xgb_fit <- train(failure ~., data = train, method = "xgbTree",
+                trControl= fit.control,
+                tuneGrid = tune_grid,
+                tuneLength = 10)
+tune_grid <- expand.grid(.mtry = (1:16)) 
+rf_fit <- train(failure ~., data = train, method = "rf",
+                trControl= fit.control,
+                tuneGrid = tune_grid,
+                tuneLength = 10)
+
+t4 <- Sys.time()
+t4 - t1
+confusionMatrix(predict(rf_fit$finalModel, test), test$failure)
+confusionMatrix(predict(xgb_fit, test), test$failure)
+
+```
+
+# Conclusion
+
+If what we are looking for is a model that minimizes both false positives and false negatives, we should opt for the XGB algorithm <code> rf.Fit1 in the code </code>, with the set of original characteristics added to those we build, in addition to taking care of the resampling technique we perform use to train the algorithm 

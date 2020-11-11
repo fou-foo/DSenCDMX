@@ -1,0 +1,17 @@
+base
+RevoUtilsMath
+RevoUtils
+lubridate
+dplyr
+ggplot2
+lattice
+caret
+MLmetrics
+gbm
+e1071
+LiblineaR
+xgboost
+randomForest
+foreach
+iterators
+doParallel
