@@ -4,6 +4,7 @@ library(shiny)
 library(shinyWidgets)
 library(shinycssloaders)
 library(reshape2)
+data <- read.csv(file = 'Data/days_60__sigma_0.22__gamma_s_0.95__gamma_a0.95__alpha_0.5__w_1.csv')
 library(plotly)# Define server logic required to draw a histogram
 #input <- list()
 #input[['days']] <- 30
@@ -24,7 +25,7 @@ shinyServer(function(input, output) {
     string <- paste0('Data/days_', input$days, '__sigma_', sigma, '__gamma_s_', gamma_s,
                      '__gamma_a', gamma_a, '__alpha_', input$alpha,
                      '__w_', input$w, '.csv')
-    data <- read.csv(file = string)
+   # data <- read.csv(file = string)
     index <- grep('^ia',names(data))
     data <- data[, c(1, index)]
     if( input$estado=='Todos')

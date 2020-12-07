@@ -33,12 +33,12 @@ shinyUI(
 
                         column( width =3 ,
                             dropdownButton( size = 'default', tags$h3("Parametros"), 
-                                sliderInput(inputId = 'days', label = 'Dias', value =30 , min = 30, max = 60, step = 30), # en realidad Lety me dijo 5.8 pero eso complica el rollo
-                                sliderInput(inputId = 'sigma', label = 'Sigma', value = 0.20 , min = 0.18, max = 0.22, step = .02), # en realidad Lety me dijo 5.8 pero eso complica el rollo
-                                sliderInput(inputId = 'gamma_s', label = 'Gamma_s', value = 0.75 , min = 0.55, max = .95, step = .20),
+                                sliderInput(inputId = 'days', label = 'Dias', value =60 , min = 30, max = 60, step = 30), # en realidad Lety me dijo 5.8 pero eso complica el rollo
+                                sliderInput(inputId = 'sigma', label = 'Sigma', value = 0.22 , min = 0.18, max = 0.22, step = .02), # en realidad Lety me dijo 5.8 pero eso complica el rollo
+                                sliderInput(inputId = 'gamma_s', label = 'Gamma_s', value = 0.95 , min = 0.55, max = .95, step = .20),
                                 #sliderInput(inputId = 'gamma_a', label = 'Gamma_a', value = 0.75 , min = 0.55, max = .95, step = .20 ),
                                 sliderInput(inputId = 'alpha', label = 'alpha', value = .5 , min = 0, max = 1, step = .5),
-                                sliderInput(inputId = 'w', label = 'w', value = .5 , min = 0, max = 1, step = .5),
+                                sliderInput(inputId = 'w', label = 'w', value = 1 , min = 0, max = 1, step = .5),
                             circle = TRUE, status = "danger", icon = icon("history"), width = "300px",
                             tooltip = tooltipOptions(title = "Cambia los parametros !") ),
                             verbatimTextOutput("beta")),
